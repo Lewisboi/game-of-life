@@ -38,7 +38,7 @@ fn main() {
     // game.apply_action(Slot(10, 7), Action::Live);
     // game.apply_action(Slot(11, 7), Action::Live);
 
-    game.randomize();
+    game.randomize(0.2);
 
     loop {
         game.print();
@@ -77,10 +77,10 @@ impl Game {
             cells: vec![vec![Cell::Dead; width]; height],
         }
     }
-    pub fn randomize(&mut self) {
+    pub fn randomize(&mut self, alive_probability: f64) {
         for row in 0..self.cells.len() {
             for col in 0..self.cells[0].len() {
-                self.cells[row][col] = if rand::random_bool(0.15) {
+                self.cells[row][col] = if rand::random_bool(alive_probability) {
                     Cell::Alive
                 } else {
                     Cell::Dead
