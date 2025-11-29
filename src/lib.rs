@@ -143,6 +143,23 @@ pub mod game {
         pub fn apply_action(&mut self, slot: Slot, action: Action) {
             self.cell_board.apply_to_slot(slot, action);
         }
+        pub fn generation(&self) -> usize {
+            self.generation
+        }
+        pub fn slots_and_cells(&self) -> impl Iterator<Item = (Slot, Cell)> {
+            (0..self.cell_board.height()).flat_map(move |y| {
+                (0..self.cell_board.width()).map(move |x| {
+                    let slot = Slot(y, x);
+                    (slot, self.cell_board.get_slot(slot))
+                })
+            })
+        }
+        pub fn height(&self) -> usize {
+            self.cell_board.height()
+        }
+        pub fn width(&self) -> usize {
+            self.cell_board.width()
+        }
     }
 
     const DEFAULT_GAME_SIZE: usize = 8;
