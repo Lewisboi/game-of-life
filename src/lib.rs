@@ -11,6 +11,7 @@ pub mod game {
     use self::cell::{Action, Cell, Slot};
     use crate::utils::add_mod_n;
     use std::collections::HashMap;
+    use std::io::{BufRead, BufReader};
 
     pub struct CellBoard {
         height: usize,
@@ -25,6 +26,50 @@ pub mod game {
                 width,
                 cells: vec![vec![Cell::Dead; width]; height],
             }
+        }
+
+        pub fn from_file(path: String) -> Result<Self, CellBoardCreationError> {
+            let file = std::fs::File::open(path)?;
+            let reader = BufReader::new(file);
+            let mut row_length: Option<usize> = None;
+            let mut row_vec = Vec::new();
+            for (i, line_res) in reader.lines().enumerate() {
+                let mut col_vec = Vec::new();
+                let line = line_res?;
+                let line_length = line.len();
+                match row_length {
+                    None => row_length = Some(line_length),
+                    Some(length) => {
+                        if line_length != length {
+                            return Err(CellBoardCreationError::FormatError(
+                                FormatErrorVariant::RowLengthMismatch { row_index: i },
+                            ));
+                        } else if length == 0 {
+                            return Err(CellBoardCreationError::FormatError(
+                                FormatErrorVariant::EmptyRow,
+                            ));
+                        }
+                    }
+                }
+                for c in line.chars() {
+                    let cell = match c {
+                        'X' => Cell::Alive,
+                        'O' => Cell::Dead,
+                        _ => {
+                            return Err(CellBoardCreationError::FormatError(
+                                FormatErrorVariant::UnrecognizedCharacter(c),
+                            ));
+                        }
+                    };
+                    col_vec.push(cell);
+                }
+                row_vec.push(col_vec);
+            }
+            Ok(Self {
+                height: row_vec.len(),
+                width: row_length.unwrap_or(0),
+                cells: row_vec,
+            })
         }
 
         pub fn set_slot(&mut self, slot: Slot, cell: Cell) {
@@ -71,12 +116,36 @@ pub mod game {
         cell_board: CellBoard,
     }
 
+    pub enum FormatErrorVariant {
+        RowLengthMismatch { row_index: usize },
+        UnrecognizedCharacter(char),
+        EmptyRow,
+    }
+
+    pub enum CellBoardCreationError {
+        FileError,
+        FormatError(FormatErrorVariant),
+    }
+
+    impl From<std::io::Error> for CellBoardCreationError {
+        fn from(_: std::io::Error) -> Self {
+            Self::FileError
+        }
+    }
+
     impl Game {
         pub fn new(height: usize, width: usize) -> Self {
             Self {
                 generation: 0,
                 cell_board: CellBoard::new(height, width),
             }
+        }
+        pub fn from_file(path: String) -> Result<Self, CellBoardCreationError> {
+            let cell_board = CellBoard::from_file(path)?;
+            Ok(Self {
+                generation: 0,
+                cell_board,
+            })
         }
         pub fn randomize(mut self, alive_probability: f64) -> Self {
             for row in 0..self.cell_board.height() {

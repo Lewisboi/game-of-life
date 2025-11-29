@@ -4,6 +4,7 @@ use std::{thread, time::Duration};
 
 use clap::Parser;
 use game_of_life::game::cell::Cell;
+use game_of_life::game::{CellBoardCreationError, FormatErrorVariant};
 
 use crate::commands::CliCommand;
 use crossterm::event::{KeyCode, KeyEventKind};
@@ -107,7 +108,29 @@ fn main() -> io::Result<()> {
 
     let mut game: GameWidget = GameWidget {
         game: if let Some(file_path) = from_file {
-            todo!()
+            match Game::from_file(file_path.clone()) {
+                Ok(game) => game,
+                Err(error) => {
+                    let error_message = match error {
+                        CellBoardCreationError::FileError => {
+                            format!("error opening file '{}', does it exist?", file_path)
+                        }
+                        CellBoardCreationError::FormatError(format_error) => match format_error {
+                            FormatErrorVariant::EmptyRow => "empty rows are not allowed".to_owned(),
+                            FormatErrorVariant::RowLengthMismatch { row_index } => {
+                                format!(
+                                    "row at index {} does not match previous row lengths",
+                                    row_index
+                                )
+                            }
+                            FormatErrorVariant::UnrecognizedCharacter(c) => {
+                                format!("unrecognized character encountered: {}", c)
+                            }
+                        },
+                    };
+                    panic!("{}", error_message);
+                }
+            }
         } else {
             Game::new(height as usize, width as usize).randomize(alive_probability)
         },
