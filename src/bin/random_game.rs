@@ -34,10 +34,10 @@ fn main() {
     // game.apply_action(Slot(10, 7), Action::Live);
     // game.apply_action(Slot(11, 7), Action::Live);
 
-    game.randomize(0.2);
+    game = game.randomize(0.2);
 
     loop {
-        game.print();
+        println!("{}", game.to_string());
         game.tick();
         thread::sleep(Duration::from_millis(SLEEP_TIME));
     }

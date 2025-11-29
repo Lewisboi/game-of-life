@@ -11,55 +11,105 @@ pub mod game {
     use self::cell::{Action, Cell, Slot};
     use crate::utils::add_mod_n;
     use std::collections::HashMap;
-    pub struct Game {
+
+    pub struct CellBoard {
+        height: usize,
+        width: usize,
         cells: Vec<Vec<Cell>>,
     }
 
-    impl Game {
-        pub fn print(&self) {
-            for row in &self.cells {
-                for cell in row {
-                    match cell {
-                        Cell::Dead => print!(" "),
-                        Cell::Alive => print!("X"),
-                    }
-                }
-                print!("\n");
-            }
-        }
+    impl CellBoard {
         pub fn new(height: usize, width: usize) -> Self {
             Self {
+                height,
+                width,
                 cells: vec![vec![Cell::Dead; width]; height],
             }
         }
-        pub fn randomize(&mut self, alive_probability: f64) {
-            for row in 0..self.cells.len() {
-                for col in 0..self.cells[0].len() {
-                    self.cells[row][col] = if rand::random_bool(alive_probability) {
-                        Cell::Alive
-                    } else {
-                        Cell::Dead
+
+        pub fn set_slot(&mut self, slot: Slot, cell: Cell) {
+            let Slot(row, col) = slot;
+            self.cells[row][col] = cell;
+        }
+
+        pub fn get_slot(&self, slot: Slot) -> Cell {
+            let Slot(row, col) = slot;
+            self.cells[row][col]
+        }
+
+        pub fn apply_to_slot(&mut self, slot: Slot, action: Action) {
+            let Slot(row, col) = slot;
+            self.cells[row][col].apply(action);
+        }
+
+        pub fn height(&self) -> usize {
+            self.height
+        }
+
+        pub fn width(&self) -> usize {
+            self.width
+        }
+    }
+
+    impl ToString for CellBoard {
+        fn to_string(&self) -> String {
+            let mut string_representation = String::new();
+            for row in &self.cells {
+                for cell in row {
+                    string_representation += match cell {
+                        Cell::Dead => " ",
+                        Cell::Alive => "X",
                     }
                 }
+                string_representation += "\n";
             }
+            string_representation
+        }
+    }
+    pub struct Game {
+        generation: usize,
+        cell_board: CellBoard,
+    }
+
+    impl Game {
+        pub fn new(height: usize, width: usize) -> Self {
+            Self {
+                generation: 0,
+                cell_board: CellBoard::new(height, width),
+            }
+        }
+        pub fn randomize(mut self, alive_probability: f64) -> Self {
+            for row in 0..self.cell_board.height() {
+                for col in 0..self.cell_board.width() {
+                    self.cell_board.set_slot(
+                        Slot(row, col),
+                        if rand::random_bool(alive_probability) {
+                            Cell::Alive
+                        } else {
+                            Cell::Dead
+                        },
+                    )
+                }
+            }
+            self
         }
         pub fn tick(&mut self) {
             let mut actions_to_apply = HashMap::new();
-            for row in 0..self.cells.len() {
-                for col in 0..self.cells[0].len() {
+            for row in 0..self.cell_board.height() {
+                for col in 0..self.cell_board.width() {
                     let slot = Slot(row, col);
                     let action = self.get_action(slot);
                     actions_to_apply.insert(slot, action);
                 }
             }
-            for (Slot(row, col), action) in actions_to_apply {
-                self.cells[row][col].apply(action);
+            for (slot, action) in actions_to_apply {
+                self.cell_board.apply_to_slot(slot, action);
             }
+            self.generation += 1;
         }
 
         fn get_action(&self, slot: Slot) -> Action {
             let Slot(row, col) = slot;
-            let modulo = self.cells.len();
             let mut live_neighbors: usize = 0;
             for (dy, dx) in [
                 (0, 1),
@@ -71,12 +121,15 @@ pub mod game {
                 (1, 0),
                 (1, 1),
             ] {
-                let (new_y, new_x) = (add_mod_n(row, dy, modulo), add_mod_n(col, dx, modulo));
-                if let Cell::Alive = &self.cells[new_y as usize][new_x as usize] {
+                let (new_y, new_x) = (
+                    add_mod_n(row, dy, self.cell_board.height()),
+                    add_mod_n(col, dx, self.cell_board.width()),
+                );
+                if let Cell::Alive = self.cell_board.get_slot(Slot(new_y, new_x)) {
                     live_neighbors += 1;
                 }
             }
-            match &self.cells[row as usize][col as usize] {
+            match self.cell_board.get_slot(slot) {
                 Cell::Alive => match live_neighbors {
                     2..=3 => Action::Live,
                     0..=1 | 4.. => Action::Die,
@@ -88,8 +141,7 @@ pub mod game {
             }
         }
         pub fn apply_action(&mut self, slot: Slot, action: Action) {
-            let Slot(row, col) = slot;
-            self.cells[row as usize][col as usize].apply(action);
+            self.cell_board.apply_to_slot(slot, action);
         }
     }
 
@@ -98,6 +150,16 @@ pub mod game {
     impl Default for Game {
         fn default() -> Self {
             Self::new(DEFAULT_GAME_SIZE, DEFAULT_GAME_SIZE)
+        }
+    }
+
+    impl ToString for Game {
+        fn to_string(&self) -> String {
+            let mut string_representation = String::new();
+            string_representation += &self.cell_board.to_string();
+            string_representation += "\n";
+            string_representation += &format!("Generation: {}", self.generation);
+            string_representation
         }
     }
 
