@@ -12,31 +12,33 @@ const SLEEP_TIME: u64 = 100;
 fn main() {
     let mut game = Game::new(20, 20);
     // cool recurring pattern with a period of 15
-    game.apply_action(Slot(1, 4), Action::Live);
-    game.apply_action(Slot(1, 5), Action::Live);
-    game.apply_action(Slot(1, 6), Action::Live);
+    // game.apply_action(Slot(1, 4), Action::Live);
+    // game.apply_action(Slot(1, 5), Action::Live);
+    // game.apply_action(Slot(1, 6), Action::Live);
 
-    game.apply_action(Slot(4, 4), Action::Live);
-    game.apply_action(Slot(4, 5), Action::Live);
-    game.apply_action(Slot(4, 6), Action::Live);
+    // game.apply_action(Slot(4, 4), Action::Live);
+    // game.apply_action(Slot(4, 5), Action::Live);
+    // game.apply_action(Slot(4, 6), Action::Live);
 
-    game.apply_action(Slot(9, 4), Action::Live);
-    game.apply_action(Slot(9, 5), Action::Live);
-    game.apply_action(Slot(9, 6), Action::Live);
+    // game.apply_action(Slot(9, 4), Action::Live);
+    // game.apply_action(Slot(9, 5), Action::Live);
+    // game.apply_action(Slot(9, 6), Action::Live);
 
-    game.apply_action(Slot(12, 4), Action::Live);
-    game.apply_action(Slot(12, 5), Action::Live);
-    game.apply_action(Slot(12, 6), Action::Live);
+    // game.apply_action(Slot(12, 4), Action::Live);
+    // game.apply_action(Slot(12, 5), Action::Live);
+    // game.apply_action(Slot(12, 6), Action::Live);
 
-    game.apply_action(Slot(2, 3), Action::Live);
-    game.apply_action(Slot(3, 3), Action::Live);
-    game.apply_action(Slot(2, 7), Action::Live);
-    game.apply_action(Slot(3, 7), Action::Live);
+    // game.apply_action(Slot(2, 3), Action::Live);
+    // game.apply_action(Slot(3, 3), Action::Live);
+    // game.apply_action(Slot(2, 7), Action::Live);
+    // game.apply_action(Slot(3, 7), Action::Live);
 
-    game.apply_action(Slot(10, 3), Action::Live);
-    game.apply_action(Slot(11, 3), Action::Live);
-    game.apply_action(Slot(10, 7), Action::Live);
-    game.apply_action(Slot(11, 7), Action::Live);
+    // game.apply_action(Slot(10, 3), Action::Live);
+    // game.apply_action(Slot(11, 3), Action::Live);
+    // game.apply_action(Slot(10, 7), Action::Live);
+    // game.apply_action(Slot(11, 7), Action::Live);
+
+    game.randomize();
 
     loop {
         game.print();
@@ -73,6 +75,17 @@ impl Game {
     pub fn new(height: usize, width: usize) -> Self {
         Self {
             cells: vec![vec![Cell::Dead; width]; height],
+        }
+    }
+    pub fn randomize(&mut self) {
+        for row in 0..self.cells.len() {
+            for col in 0..self.cells[0].len() {
+                self.cells[row][col] = if rand::random_bool(0.15) {
+                    Cell::Alive
+                } else {
+                    Cell::Dead
+                }
+            }
         }
     }
     pub fn tick(&mut self) {
