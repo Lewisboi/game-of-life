@@ -26,10 +26,10 @@ enum Speed {
 }
 
 impl Speed {
-    pub fn regulate(&mut self, speed_action: SpeedAction) {
+    pub fn regulate(&mut self, speed_action: SpeedAction) -> SpeedActionEffect {
         match self {
             Self::Unpaused(speed_variant) => speed_variant.regulate(speed_action),
-            Self::Paused => {}
+            Self::Paused => SpeedActionEffect::Unchanged,
         }
     }
 
@@ -50,17 +50,29 @@ impl SpeedVariant {
         }
     }
 
-    pub fn regulate(&mut self, speed_action: SpeedAction) {
+    pub fn regulate(&mut self, speed_action: SpeedAction) -> SpeedActionEffect {
         match speed_action {
             SpeedAction::Increase => match self {
-                SpeedVariant::Slow => *self = SpeedVariant::Normal,
-                SpeedVariant::Normal => *self = SpeedVariant::Fast,
-                _ => {}
+                SpeedVariant::Slow => {
+                    *self = SpeedVariant::Normal;
+                    SpeedActionEffect::Changed
+                }
+                SpeedVariant::Normal => {
+                    *self = SpeedVariant::Fast;
+                    SpeedActionEffect::Changed
+                }
+                _ => SpeedActionEffect::Unchanged,
             },
             SpeedAction::Decrease => match self {
-                SpeedVariant::Normal => *self = SpeedVariant::Slow,
-                SpeedVariant::Fast => *self = SpeedVariant::Normal,
-                _ => {}
+                SpeedVariant::Normal => {
+                    *self = SpeedVariant::Slow;
+                    SpeedActionEffect::Changed
+                }
+                SpeedVariant::Fast => {
+                    *self = SpeedVariant::Normal;
+                    SpeedActionEffect::Changed
+                }
+                _ => SpeedActionEffect::Unchanged,
             },
         }
     }
@@ -146,8 +158,8 @@ impl GameWidget {
         Self::new(game, speed)
     }
 
-    pub fn regulate_speed(&mut self, speed_action: SpeedAction) {
-        self.speed.regulate(speed_action);
+    pub fn regulate_speed(&mut self, speed_action: SpeedAction) -> SpeedActionEffect {
+        self.speed.regulate(speed_action)
     }
 
     pub fn toggle_pause(&mut self) {
@@ -220,6 +232,11 @@ impl Widget for &GameWidget {
 enum SpeedAction {
     Increase,
     Decrease,
+}
+
+enum SpeedActionEffect {
+    Changed,
+    Unchanged,
 }
 
 enum UserAction {
@@ -323,10 +340,11 @@ fn main() -> io::Result<()> {
             UpdateEvent::Input(user_action) => match user_action {
                 UserAction::Quit => break,
                 UserAction::RegulateSpeed(speed_action) => {
-                    game_widget.regulate_speed(speed_action);
-                    speed_tx
-                        .send(game_widget.speed())
-                        .expect("mpsc channel to work correctly");
+                    if let SpeedActionEffect::Changed = game_widget.regulate_speed(speed_action) {
+                        speed_tx
+                            .send(game_widget.speed())
+                            .expect("mpsc channel to work correctly");
+                    }
                 }
                 UserAction::TogglePause => {
                     game_widget.toggle_pause();
